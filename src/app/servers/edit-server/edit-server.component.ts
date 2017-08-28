@@ -1,37 +1,53 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Params } from '@angular/router';
+import {
+  ActivatedRoute,
+  Params,
+  Router,
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot
+} from '@angular/router';
 
 import { ServersService } from '../servers.service';
+import {
+  CanDeactivateGaurd,
+  CanComponentDeactivate
+} from './can-deactivate-gaurd.service';
+import { Observable } from 'rxjs/Observable';
 
 @Component({
   selector: 'app-edit-server',
   templateUrl: './edit-server.component.html',
   styleUrls: ['./edit-server.component.css']
 })
-export class EditServerComponent implements OnInit {
-  server: {id: number, name: string, status: string};
+export class EditServerComponent implements OnInit, CanDeactivateGaurd {
+
+  server: { id: number; name: string; status: string };
   serverName = '';
   serverStatus = '';
   allowEdit = false;
-  constructor(private serversService: ServersService, private route: ActivatedRoute) { }
+  changesSaved = false;
+
+  constructor(
+    private serversService: ServersService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   ngOnInit() {
-
     // console.log(this.route.snapshot.queryParams);
     // console.log(this.route.snapshot.fragment);
 
-    this.route.queryParams.subscribe(
-      (queryParams: Params) => { this.allowEdit = queryParams['allowEdit'] === '1' ? true : false; }
-    );
-    this.allowEdit = this.route.snapshot.queryParams['allowEdit'] === '1' ? true : false;
+    this.route.queryParams.subscribe((queryParams: Params) => {
+      this.allowEdit = queryParams['allowEdit'] === '1' ? true : false;
+    });
+    this.allowEdit =
+      this.route.snapshot.queryParams['allowEdit'] === '1' ? true : false;
     this.route.fragment.subscribe();
 
-    this.route.params.subscribe(
-      (params: Params) => {
-        const id = +params['id'];
-        this.updateServer(id);
-      }
-    );
+    this.route.params.subscribe((params: Params) => {
+      const id = +params['id'];
+      this.updateServer(id);
+    });
     const id = +this.route.snapshot.params['id'];
     this.updateServer(id);
   }
@@ -43,7 +59,31 @@ export class EditServerComponent implements OnInit {
   }
 
   onUpdateServer() {
-    this.serversService.updateServer(this.server.id, {name: this.serverName, status: this.serverStatus});
+    this.serversService.updateServer(this.server.id, {
+      name: this.serverName,
+      status: this.serverStatus
+    });
+    this.changesSaved = true;
+    this.router.navigate(['../'], { relativeTo: this.route,
+                                    queryParamsHandling: 'preserve' });
+  }
+
+  canDeactivate(
+    component: CanComponentDeactivate,
+    currentRoute: ActivatedRouteSnapshot,
+    currentState: RouterStateSnapshot,
+    nextState?: RouterStateSnapshot
+  ): boolean | Observable<boolean> | Promise<boolean> {
+
+    if (!this.allowEdit) {
+      return true;
+    }
+    if ((this.serverName !== this.server.name || this.serverStatus !== this.server.status)
+      && !this.changesSaved) {
+      return confirm('Do you want to discard changes?');
+    } else {
+      return true;
+    }
   }
 
 }
