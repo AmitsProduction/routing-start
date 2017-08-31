@@ -11,6 +11,7 @@ import { PageNotFoundComponent } from './page-not-found/page-not-found.component
 import { AuthGaurdService } from './auth-guard.service';
 import { CanDeactivateGaurd } from './servers/edit-server/can-deactivate-gaurd.service';
 import { ErrorPageComponent } from './error-page/error-page.component';
+import { ServerResolver } from './servers/server/server-resolver.service';
 
 const appRoutes: Routes = [
   { path: '', component: HomeComponent },
@@ -18,21 +19,22 @@ const appRoutes: Routes = [
       { path: ':id/:name', component: UserComponent }]
   },
   { path: 'servers',
-    //canActivate: [ AuthGaurdService ],
+    // canActivate: [ AuthGaurdService ],
     canActivateChild: [AuthGaurdService],
     component: ServersComponent,
     children: [
-      { path: ':id', component: ServerComponent },
+      { path: ':id', component: ServerComponent, resolve:{server: ServerResolver} },
       { path: ':id/edit', component: EditServerComponent, canDeactivate: [CanDeactivateGaurd] }]
   },
   { path: 'not-found', component: PageNotFoundComponent },
-  { path: 'error-page', component: ErrorPageComponent },
-  { path: '**', redirectTo: '/not-found' }
+  { path: 'error-page', component: ErrorPageComponent, data: {message: 'Error occured while serving your request!!'} },
+  { path: '**', redirectTo: '/error-page' }
 ];
 
 @NgModule({
   imports: [
     RouterModule.forRoot(appRoutes)
+    // RouterModule.forRoot(appRoutes, {useHash: true})
   ],
   exports: [RouterModule],
   providers: [],
